@@ -15,16 +15,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "ptadc.h"
+#include "solenoid.h"
+#include "thermocouple.h"
 
 
 // Function Prototypes
 void SystemClock_Config(void); // Auto Generated
-void testADC();
-void testSol1();
-void testTC2();
-HAL_StatusTypeDef uartPrint(uint8_t* msg);
-HAL_StatusTypeDef uartPrintBinary8(uint8_t bit, bool printNewline);
 
 int main(void) {
 	HAL_Init();
@@ -45,96 +43,9 @@ int main(void) {
 	}
 }
 
-void testSol1() {
-	uartPrint((uint8_t*) "Solenoid On");
-	HAL_GPIO_WritePin(SOL_OUT1_GPIO_Port, SOL_OUT1_Pin, GPIO_PIN_SET);
-	HAL_Delay(2000);
 
-	uartPrint((uint8_t*) "Solenoid Off\r\n");
-	HAL_GPIO_WritePin(SOL_OUT1_GPIO_Port, SOL_OUT1_Pin, GPIO_PIN_RESET);
-	HAL_Delay(2000);
-}
 
-/**
- * Tests the 2nd Thermocouple (no reason why we chose the 2nd one)
- */
-void testTC2() {
 
-	uint8_t rxBuf[4] = { 0 };
-
-	HAL_GPIO_WritePin(TC_CS2_GPIO_Port, TC_CS2_Pin, GPIO_PIN_RESET);
-	//requires 32 bit buffer
-	//rxBuf[31] is sign bit, rxBuf[30:18] are TC temperature(signed value)
-	//rxBuf[15:4] is reference voltage
-	HAL_SPI_Receive(&hspi1, rxBuf, (uint16_t) 4, TIMEOUT);
-
-	HAL_GPIO_WritePin(TC_CS2_GPIO_Port, TC_CS2_Pin, GPIO_PIN_SET);
-
-	for (int i = 0; i < 4; i++) {
-		uartPrintBinary8(rxBuf[i], false);
-		uartPrint((uint8_t*) " ");
-	}
-	uartPrint((uint8_t*) "\r\n");
-
-}
-
-/**
- * Tests the SPI ADC by writing/reading to/from its registers
- *
- * SPI Procedure for ADC:
- * 1) Write 1 byte, which sets the communication register
- * 2) The next byte(s) are dependent on what was set (read, write, etc)
- *
- * See datasheet for more info:
- * http://www.analog.com/media/en/technical-documentation/data-sheets/AD7794_7795.pdf
- */
-void testADC() {
-	uint32_t temp = PTADC_GetRawTempFromChannel(PT_CHANNEL_1);
-	for (int i = 0; i < 4; i++)
-		uartPrintBinary8(((uint8_t*)&temp)[i], false);
-	uartPrint((uint8_t*)"\r\n");
-}
-
-/**
- * Prints  a string to UART2 for debugging
- *
- * Preconditions:
- * 	- UART2 is initialized
- * 	- msg is some normal string I guess, idk
- */
-HAL_StatusTypeDef uartPrint(uint8_t* msg) {
-
-	HAL_StatusTypeDef status;
-	status = HAL_UART_Transmit(&huart2, msg, strlen((char*) msg), TIMEOUT);
-
-	return status;
-}
-
-/**
- * Prints an 8-bit number as a binary number, with or without newline
- *
- * Preconditions:
- * 	- UART2 is initialized
- *
- * 	@param printNewline if true, also adds a newline (and CR)
- */
-HAL_StatusTypeDef uartPrintBinary8(uint8_t num, bool printNewline) {
-
-	HAL_StatusTypeDef status = HAL_OK;
-	uint8_t bit;
-
-	for (int i = 0; i < 8; i++) {
-		bit = (num >> 7) + '0'; // Convert the left-most bit into ASCII
-		HAL_UART_Transmit(&huart2, &bit, 1, TIMEOUT);
-
-		num = num << 1;
-	}
-
-	if (printNewline)
-		HAL_UART_Transmit(&huart2, (uint8_t*) "\r\n", 2, TIMEOUT);
-
-	return status;
-}
 
 /** System Clock Configuration
  *
@@ -216,11 +127,15 @@ void _Error_Handler(char * file, int line) {
  * @retval None
  */
 void assert_failed(uint8_t* file, uint32_t line) {
-	/* USER CODE BEGIN 6 */
-	/* User can add his own implementation to report the file name and line number,
-	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
-
+	if (huart2.gState != HAL_UART_STATE_RESET) {
+		uartPrint((uint8_t*) "Assert failed in file ");
+		uartPrint(file);
+		uartPrint((uint8_t*) " on line ");
+		for (int i = 3; i >= 0; i--) { // Print in binary cause I'm lazy
+			uartPrintBinary8(((uint8_t*)&line)[i], false);
+		}
+		uartPrint((uint8_t*) "\r\n");
+	}
 }
 
 #endif

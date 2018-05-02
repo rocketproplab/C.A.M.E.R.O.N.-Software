@@ -9,8 +9,8 @@
  * 	https://github.com/jjuliano77/JJ_AD7794
  */
 
-#ifndef PTADC_H_AYILAY
-#define PTADC_H_AYILAY
+#ifndef PTADC_H
+#define PTADC_H
 
 #define PT_CHANNEL_1 0
 #define PT_CHANNEL_2 1
@@ -31,5 +31,7 @@ void PTADC_SetActiveChannel(uint8_t channel);
 void PTADC_WriteConfReg(uint16_t* confReg);
 void PTADC_StartConversion(uint16_t* modeReg);
 uint32_t PTADC_GetConversionResult();
+
+void testADC();
 
 #endif

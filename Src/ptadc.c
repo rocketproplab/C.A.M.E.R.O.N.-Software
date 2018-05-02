@@ -9,8 +9,9 @@
  * 	https://github.com/jjuliano77/JJ_AD7794
  */
 
-#include <init/spi.h>
-#include <init/gpio.h>
+#include "init/spi.h"
+#include "init/gpio.h"
+#include "init/usart.h"
 #include "main.h"
 #include "ptadc.h"
 
@@ -89,4 +90,21 @@ uint32_t PTADC_GetConversionResult() {
 	HAL_SPI_Receive(&hspi1, (uint8_t*) &result, 3, TIMEOUT);
 
 	return result;
+}
+
+/**
+ * Tests the SPI ADC by writing/reading to/from its registers
+ *
+ * SPI Procedure for ADC:
+ * 1) Write 1 byte, which sets the communication register
+ * 2) The next byte(s) are dependent on what was set (read, write, etc)
+ *
+ * See datasheet for more info:
+ * http://www.analog.com/media/en/technical-documentation/data-sheets/AD7794_7795.pdf
+ */
+void testADC() {
+	uint32_t temp = PTADC_GetRawTempFromChannel(PT_CHANNEL_1);
+	for (int i = 0; i < 4; i++)
+		uartPrintBinary8(((uint8_t*)&temp)[i], 0);
+	uartPrint((uint8_t*)"\r\n");
 }

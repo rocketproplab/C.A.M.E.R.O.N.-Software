@@ -38,6 +38,9 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <init/gpio.h>
 #include <init/usart.h>
 
@@ -122,6 +125,46 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
 /* USER CODE BEGIN 1 */
 
+/**
+ * Prints  a string to UART2 for debugging
+ *
+ * Preconditions:
+ * 	- UART2 is initialized
+ * 	- msg is some normal string I guess, idk
+ */
+HAL_StatusTypeDef uartPrint(uint8_t* msg) {
+
+	HAL_StatusTypeDef status;
+	status = HAL_UART_Transmit(&huart2, msg, strlen((char*) msg), TIMEOUT);
+
+	return status;
+}
+
+/**
+ * Prints an 8-bit number as a binary number, with or without newline
+ *
+ * Preconditions:
+ * 	- UART2 is initialized
+ *
+ * 	@param printNewline if true, also adds a newline (and CR)
+ */
+HAL_StatusTypeDef uartPrintBinary8(uint8_t num, uint8_t printNewline) {
+
+	HAL_StatusTypeDef status = HAL_OK;
+	uint8_t bit;
+
+	for (int i = 0; i < 8; i++) {
+		bit = (num >> 7) + '0'; // Convert the left-most bit into ASCII
+		HAL_UART_Transmit(&huart2, &bit, 1, TIMEOUT);
+
+		num = num << 1;
+	}
+
+	if (printNewline)
+		HAL_UART_Transmit(&huart2, (uint8_t*) "\r\n", 2, TIMEOUT);
+
+	return status;
+}
 /* USER CODE END 1 */
 
 /**
