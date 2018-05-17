@@ -24,11 +24,12 @@
 uint16_t modeReg;
 
 void PTADC_Init();
-void PTADC_ResetPT();
+void PTADC_Reset();
+uint8_t PTADC_ReadStatusRegister();
 uint32_t PTADC_GetRawTempFromChannel(uint8_t channel);
 
 void PTADC_SetActiveChannel(uint8_t channel);
-void PTADC_WriteConfReg(uint16_t* confReg);
+void PTADC_WriteConfReg(uint8_t* confReg);
 void PTADC_StartConversion(uint16_t* modeReg);
 uint32_t PTADC_GetConversionResult();
 

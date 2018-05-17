@@ -10,5 +10,6 @@
 #define THERMOCOUPLE_H
 
 void testTC2();
+void testTC1();
 
 #endif

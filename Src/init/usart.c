@@ -132,10 +132,10 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
  * 	- UART2 is initialized
  * 	- msg is some normal string I guess, idk
  */
-HAL_StatusTypeDef uartPrint(uint8_t* msg) {
+HAL_StatusTypeDef uartPrint(char* msg) {
 
 	HAL_StatusTypeDef status;
-	status = HAL_UART_Transmit(&huart2, msg, strlen((char*) msg), TIMEOUT);
+	status = HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg), TIMEOUT);
 
 	return status;
 }

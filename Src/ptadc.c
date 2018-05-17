@@ -16,6 +16,7 @@
 #include "ptadc.h"
 
 const uint8_t READ_DATA_REG = 0x58;
+const uint8_t READ_STATUS_REG = 0x40;
 const uint8_t WRITE_CONF_REG = 0x10;
 const uint8_t WRITE_MODE_REG = 0x08;
 
@@ -23,12 +24,29 @@ void PTADC_Init() {
 	modeReg = 0x2001;	// Single Conversion mode, Fadc = 470Hz
 }
 
-void PTADC_ResetPT() {
+void PTADC_Reset() {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
 	uint32_t ADC_DATA_RESET = (uint32_t) (~0);
 	HAL_SPI_Transmit(&hspi1, (uint8_t*) &ADC_DATA_RESET, 4, TIMEOUT);
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+}
+
+uint8_t PTADC_ReadStatusRegister() {
+	uint8_t rxResult[2];
+	rxResult[0] = 0x27;
+	rxResult[1] = 0x00;
+	//PTADC_WriteConfReg(rxResult);
+
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+
+	HAL_SPI_Transmit(&hspi1, &READ_STATUS_REG, 1, TIMEOUT);
+
+	HAL_SPI_Receive(&hspi1, rxResult, 1, TIMEOUT);
+
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+
+	return rxResult[0];
 }
 
 uint32_t PTADC_GetRawTempFromChannel(uint8_t channel) {
@@ -56,11 +74,11 @@ void PTADC_SetActiveChannel(uint8_t channel) {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
 }
 
-void PTADC_WriteConfReg(uint16_t* confReg) {
+void PTADC_WriteConfReg(uint8_t* confReg) {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
 	HAL_SPI_Transmit(&hspi1, &WRITE_CONF_REG, 1, TIMEOUT);
-	HAL_SPI_Transmit(&hspi1, (uint8_t*) confReg, 2, TIMEOUT);
+	HAL_SPI_Transmit(&hspi1, confReg, 2, TIMEOUT);
 
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
 }

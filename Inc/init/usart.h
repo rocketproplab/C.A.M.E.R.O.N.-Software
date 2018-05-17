@@ -62,7 +62,7 @@ extern void _Error_Handler(char *, int);
 void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-HAL_StatusTypeDef uartPrint(uint8_t* msg);
+HAL_StatusTypeDef uartPrint(char* msg);
 HAL_StatusTypeDef uartPrintBinary8(uint8_t bit, uint8_t printNewline);
 /* USER CODE END Prototypes */
 

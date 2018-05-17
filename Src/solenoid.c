@@ -10,12 +10,12 @@
 #include "init/usart.h"
 
 
-void testSol1() {
+void testSol5() {
 	uartPrint((uint8_t*) "Solenoid On");
-	HAL_GPIO_WritePin(SOL_OUT1_GPIO_Port, SOL_OUT1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SOL_OUT5_GPIO_Port, SOL_OUT5_Pin, GPIO_PIN_SET);
 	HAL_Delay(2000);
 
 	uartPrint((uint8_t*) "Solenoid Off\r\n");
-	HAL_GPIO_WritePin(SOL_OUT1_GPIO_Port, SOL_OUT1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(SOL_OUT5_GPIO_Port, SOL_OUT5_Pin, GPIO_PIN_RESET);
 	HAL_Delay(2000);
 }

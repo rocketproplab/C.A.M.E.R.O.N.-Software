@@ -20,6 +20,7 @@
 #include "solenoid.h"
 #include "thermocouple.h"
 
+#define SPI_BUFSIZ 32
 
 // Function Prototypes
 void SystemClock_Config(void); // Auto Generated
@@ -33,19 +34,15 @@ int main(void) {
 	MX_USART2_UART_Init();
 	MX_SPI1_Init();
 	PTADC_Init();
-	//MX_I2C1_Init();
-	//MX_SPI3_Init();
+	MX_SPI3_Init();
 
-	uartPrint((uint8_t*) "Hello, world\r\n\r\n");
+	uartPrint("Hello, world\r\n\r\n");
+
 	while (1) {
-		testADC();
 		HAL_Delay(1000);
+		testADC();
 	}
 }
-
-
-
-
 
 /** System Clock Configuration
  *
@@ -128,13 +125,13 @@ void _Error_Handler(char * file, int line) {
  */
 void assert_failed(uint8_t* file, uint32_t line) {
 	if (huart2.gState != HAL_UART_STATE_RESET) {
-		uartPrint((uint8_t*) "Assert failed in file ");
-		uartPrint(file);
-		uartPrint((uint8_t*) " on line ");
+		uartPrint("Assert failed in file ");
+		uartPrint((char*) file);
+		uartPrint(" on line ");
 		for (int i = 3; i >= 0; i--) { // Print in binary cause I'm lazy
-			uartPrintBinary8(((uint8_t*)&line)[i], false);
+			uartPrintBinary8(((uint8_t*) &line)[i], false);
 		}
-		uartPrint((uint8_t*) "\r\n");
+		uartPrint("\r\n");
 	}
 }
 
