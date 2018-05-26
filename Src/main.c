@@ -37,10 +37,12 @@ int main(void) {
 	MX_SPI3_Init();
 
 	uartPrint("Hello, world\r\n\r\n");
+	PTADC_Reset();
+	HAL_Delay(500);
 
 	while (1) {
 		HAL_Delay(1000);
-		testADC();
+		PTADC_ReadStatusRegister();
 	}
 }
 

@@ -19,6 +19,8 @@ const uint8_t READ_DATA_REG = 0x58;
 const uint8_t READ_STATUS_REG = 0x40;
 const uint8_t WRITE_CONF_REG = 0x10;
 const uint8_t WRITE_MODE_REG = 0x08;
+const uint8_t READ_ID_REG = 0x60;
+
 
 void PTADC_Init() {
 	modeReg = 0x2001;	// Single Conversion mode, Fadc = 470Hz
@@ -46,11 +48,16 @@ uint8_t PTADC_ReadStatusRegister() {
 
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
 
+	for (int i = 0; i < 4; i++)
+		uartPrintBinary8(((uint8_t*)&rxResult)[i], 0);
+	uartPrint((uint8_t*)"\r\n");
 	return rxResult[0];
 }
 
 uint32_t PTADC_GetRawTempFromChannel(uint8_t channel) {
 	// Set the current ADC Channel
+	//HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+
 	PTADC_SetActiveChannel(channel);
 
 	// Starts the conversion procedure by writing to the mode register, then reading the result
@@ -104,10 +111,26 @@ void PTADC_WriteModeReg(uint16_t* modeReg) {
 
 uint32_t PTADC_GetConversionResult() {
 	uint32_t result = 0;
-
+	HAL_SPI_Transmit(&hspi1, &READ_DATA_REG, 1, TIMEOUT);
 	HAL_SPI_Receive(&hspi1, (uint8_t*) &result, 3, TIMEOUT);
 
 	return result;
+}
+
+uint8_t PTADC_ReadIDRegister(){
+	uint8_t result = 0;
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi1, &READ_ID_REG, 1, TIMEOUT);
+	HAL_SPI_Receive(&hspi1, (uint8_t*)&result, 1, TIMEOUT);
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+
+}
+
+void PTADC_testID(){
+	uint8_t result = PTADC_ReadIDRegister();
+	uartPrintBinary8(result, 0);
+	uartPrint((uint8_t*)"\r\n");
+
 }
 
 /**
