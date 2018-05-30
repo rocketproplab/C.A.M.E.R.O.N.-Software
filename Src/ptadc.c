@@ -109,7 +109,7 @@ uint32_t PTADC_GetConversionResult() {
 void testADC() {
 	PTADC_ResetPT();
 	uartPrint((uint8_t*)"Conversion Ready \n");
-	uint32_t temp = PTADC_GetRawTempFromChannel(PT_CHANNEL_1);
+	uint32_t temp = PTADC_GetRawTempFromChannel(PT_CHANNEL_5);
 	uint8_t printout[BUFSIZ] = {0};
 
 	float volts = temp * 2.5 / (powf(2, 24));
