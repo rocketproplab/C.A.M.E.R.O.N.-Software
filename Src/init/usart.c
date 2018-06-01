@@ -165,6 +165,28 @@ HAL_StatusTypeDef uartPrintBinary8(uint8_t num, uint8_t printNewline) {
 
 	return status;
 }
+
+void testUsart() {
+	uint8_t* rxBuf[10];
+	uint8_t* rxOk = "RX OK:";
+	uint8_t* timeoutErr = "TIMEOUT";
+	uint8_t* err = "SHITFUCK";
+
+	HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, rxBuf, 2, TIMEOUT);
+
+	// Echo received data back
+	if (status == HAL_OK) {
+		HAL_UART_Transmit(&huart2, rxOk, 6, TIMEOUT);
+		HAL_UART_Transmit(&huart2, rxBuf, 2, TIMEOUT);
+	}
+	else if (status == HAL_TIMEOUT) {
+		HAL_UART_Transmit(&huart2, timeoutErr, 8, TIMEOUT);
+	}
+	else {
+		HAL_UART_Transmit(&huart2, err, 8, TIMEOUT);
+	}
+}
+
 /* USER CODE END 1 */
 
 /**

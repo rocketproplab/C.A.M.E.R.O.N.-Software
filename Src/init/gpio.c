@@ -59,15 +59,15 @@ void MX_GPIO_Init(void) {
 	GPIO_InitTypeDef GPIO_InitStruct;
 
 	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOE_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOE_CLK_ENABLE();
+	__HAL_RCC_GPIOH_CLK_ENABLE();
 
 	/* The following are not needed yet (for testing purposes)
 
-	 __HAL_RCC_GPIOC_CLK_ENABLE();
-	 __HAL_RCC_GPIOH_CLK_ENABLE();
-	 __HAL_RCC_GPIOA_CLK_ENABLE();
-	 __HAL_RCC_GPIOB_CLK_ENABLE();
 
 	 HAL_GPIO_WritePin(GPIOD, SOL_OUT5_Pin|SOL_OUT4_Pin|SOL_OUT3_Pin|SOL_OUT2_Pin
 	 |SOL_OUT1_Pin|TC_CS4_Pin|TC_CS3_Pin|TC_CS2_Pin
