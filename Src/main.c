@@ -33,14 +33,27 @@ int main(void) {
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
 	MX_SPI1_Init();
-	PTADC_Init();
-	MX_SPI3_Init();
+	//MX_SPI3_Init();
 
 	uartPrint("Hello, world\r\n\r\n");
 
+	PTADC_Init();
+
+	PTADC_Reset();
+	//PTADC_SetGain(0);
+	char buf[255];
+
 	while (1) {
-		HAL_Delay(1000);
-		testADC();
+		PTADC_SetActiveChannel(PTADC_CHANNEL_5);
+
+		uint8_t status = PTADC_ReadStatReg();
+		uint16_t mode = PTADC_ReadModeReg();
+		sprintf(buf, "Status: %#x\r\n", status);
+		uartPrint(buf);
+		sprintf(buf, "Mode: %#x\r\n\r\n", mode);
+		uartPrint(buf);
+		HAL_Delay(500);
+
 	}
 }
 

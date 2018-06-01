@@ -15,65 +15,117 @@
 #include "main.h"
 #include "ptadc.h"
 
-const uint8_t READ_DATA_REG = 0x58;
+static void PTADC_BuildModeReg();
+static void PTADC_BuildConfReg();
+
 const uint8_t READ_STATUS_REG = 0x40;
-const uint8_t WRITE_CONF_REG = 0x10;
-const uint8_t WRITE_MODE_REG = 0x08;
+const uint8_t READ_MODE_REG   = 0x48;
+const uint8_t READ_CONF_REG   = 0x50;
+const uint8_t READ_DATA_REG   = 0x58;
+
+const uint8_t WRITE_MODE_REG  = 0x08;
+const uint8_t WRITE_CONF_REG  = 0x10;
+
+// Register values for writing
+uint8_t modeReg[2];
+uint8_t confReg[2];
+
+// Conf Reg Options
+static uint8_t currentChannel;
+static uint8_t isUnipolar;
+static uint8_t isBuffered;
+static uint8_t gain;
+
+// Mode Reg Options
+static uint8_t adcMode;
+static uint8_t updateRate;
+
+////////////////////////////////////////////////////////////////////////////////
+//	High Level interface functions
+////////////////////////////////////////////////////////////////////////////////
 
 void PTADC_Init() {
-	modeReg = 0x2001;	// Single Conversion mode, Fadc = 470Hz
-	PTADC_ResetPT();
+	gain = PTADC_GAIN_1;
+	updateRate = PTADC_UPDATE_RATE_0;
+	isUnipolar = PTADC_BIPOLAR;
+	isBuffered = PTADC_BUFFERED;
+	currentChannel = PTADC_CHANNEL_1;
+
+	PTADC_BuildModeReg();
+	PTADC_BuildConfReg();
 }
 
-void PTADC_ResetPT() {
+void PTADC_Reset() {
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+
 	uint32_t ADC_DATA_RESET = (uint32_t) (~0);
-	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
-
 	HAL_SPI_Transmit(&hspi1, (uint8_t*) &ADC_DATA_RESET, 4, TIMEOUT);
-	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
-}
-
-uint8_t PTADC_ReadStatusRegister() {
-	uint8_t rxResult[2];
-	rxResult[0] = 0x27;
-	rxResult[1] = 0x00;
-	//PTADC_WriteConfReg(rxResult);
-
-	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
-
-	HAL_SPI_Transmit(&hspi1, &READ_STATUS_REG, 1, TIMEOUT);
-
-	HAL_SPI_Receive(&hspi1, rxResult, 1, TIMEOUT);
 
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
-
-	return rxResult[0];
 }
 
 uint32_t PTADC_GetRawTempFromChannel(uint8_t channel) {
-	// Set the current ADC Channel
+
 	PTADC_SetActiveChannel(channel);
 
-	// Starts the conversion procedure by writing to the mode register, then reading the result
-	PTADC_StartConversion(&modeReg);
-	uint32_t convResult = PTADC_GetConversionResult();
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
-	return convResult;
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+
+	return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	Option Set Functions
+////////////////////////////////////////////////////////////////////////////////
+
+void PTADC_SetGain(uint8_t gainOpt) {
+	gain = gainOpt;
+
+	PTADC_BuildConfReg();
+	PTADC_WriteConfReg();
 }
 
 void PTADC_SetActiveChannel(uint8_t channel) {
-	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+	currentChannel = channel;
 
-	// Gain = 16x (input range: 156.2 mV from datasheet)
-	uint8_t gain = 0b100;
-	uint16_t confReg = (gain << 8) | channel;
-	uint8_t conf_value[2];
-	PTADC_WriteConfReg(&confReg);
-
-	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+	PTADC_BuildConfReg();
+	PTADC_WriteConfReg(confReg);
 }
 
-void PTADC_WriteConfReg(uint8_t* confReg) {
+void PTADC_SetIsBuffered(uint8_t isBufferedOpt) {
+	isBuffered = isBufferedOpt;
+
+	PTADC_BuildConfReg();
+	PTADC_WriteConfReg();
+}
+
+void PTADC_SetIsUnipolar(uint8_t isUnipolarOpt) {
+	isUnipolar = isUnipolarOpt;
+
+	PTADC_BuildConfReg();
+	PTADC_WriteConfReg();
+}
+
+void PTADC_SetUpdateRate(uint8_t updateRateOpt) {
+	updateRate = updateRateOpt;
+
+	PTADC_BuildModeReg();
+	PTADC_WriteModeReg();
+}
+
+void PTADC_SetADCMode(uint8_t adcModeOpt) {
+	adcMode = adcModeOpt;
+
+	PTADC_BuildModeReg();
+	PTADC_WriteModeReg();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	Register Write Functions
+////////////////////////////////////////////////////////////////////////////////
+
+void PTADC_WriteConfReg() {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
 	HAL_SPI_Transmit(&hspi1, &WRITE_CONF_REG, 1, TIMEOUT);
@@ -82,57 +134,82 @@ void PTADC_WriteConfReg(uint8_t* confReg) {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
 }
 
-void PTADC_StartConversion(uint16_t* modeReg) {
+void PTADC_WriteModeReg() {
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
 	HAL_SPI_Transmit(&hspi1, &WRITE_MODE_REG, 1, TIMEOUT);
-	HAL_SPI_Transmit(&hspi1, (uint8_t*) modeReg, 2, TIMEOUT);
+	HAL_SPI_Transmit(&hspi1, modeReg, 2, TIMEOUT);
+
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
-
-	HAL_Delay(READ_DELAY);
-
 }
 
-void PTADC_WriteModeReg(uint16_t* modeReg) {
+////////////////////////////////////////////////////////////////////////////////
+//	Register Builder functions
+////////////////////////////////////////////////////////////////////////////////
+
+static void PTADC_BuildConfReg() {
+	uint16_t confRegBuf = 0;
+	confRegBuf |= currentChannel;
+	confRegBuf |= gain << 8;
+	confRegBuf = isUnipolar ? (confRegBuf | 1<<12) : (confRegBuf & ~(1<<12));
+	confRegBuf = isBuffered ? (confRegBuf | 1<<4) : (confRegBuf & ~(1<<4));
+
+	confReg[0] = (uint8_t) ((confRegBuf & 0xFF00) >> 8);
+	confReg[1] = (uint8_t) (confRegBuf & 0x00FF);
+}
+
+static void PTADC_BuildModeReg() {
+	uint16_t modeRegBuf = 0;
+	modeRegBuf |= updateRate;
+	modeRegBuf |= (adcMode << 13);
+
+	modeReg[0] = (uint8_t) ((modeRegBuf & 0xFF00) >> 8);
+	modeReg[1] = (uint8_t) (modeRegBuf & 0x00FF);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	Register Read functions
+////////////////////////////////////////////////////////////////////////////////
+
+uint8_t PTADC_ReadStatReg() {
+	uint8_t rxResult = 0;
+
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
 
-	HAL_SPI_Transmit(&hspi1, &WRITE_MODE_REG, 1, TIMEOUT);
-
-	HAL_SPI_Transmit(&hspi1, (uint8_t*) &modeReg, 2, TIMEOUT);
+	HAL_SPI_Transmit(&hspi1, &READ_STATUS_REG, 1, TIMEOUT);
+	HAL_SPI_Receive(&hspi1, &rxResult, 1, TIMEOUT);
 
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+
+	return rxResult;
 }
 
-uint32_t PTADC_GetConversionResult() {
-	uint32_t result = 0xFF;
+uint16_t PTADC_ReadModeReg() {
+	uint8_t rxResult[2];
+
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi1, (uint8_t*) &READ_DATA_REG, 1, TIMEOUT);
-	HAL_SPI_Receive(&hspi1, (uint8_t*) &result, 3, TIMEOUT);
+
+	HAL_SPI_Transmit(&hspi1, &READ_MODE_REG, 1, TIMEOUT);
+	HAL_SPI_Receive(&hspi1, rxResult, 2, TIMEOUT);
+
 	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
 
-	return result;
+	uint16_t rxResultBuf = rxResult[0] | (rxResult[1] << 8);
+
+	return rxResultBuf;
 }
 
-/**
- * Tests the SPI ADC by writing/reading to/from its registers
- *
- * SPI Procedure for ADC:
- * 1) Write 1 byte, which sets the communication register
- * 2) The next byte(s) are dependent on what was set (read, write, etc)
- *
- * See datasheet for more info:
- * http://www.analog.com/media/en/technical-documentation/data-sheets/AD7794_7795.pdf
- */
-void testADC() {
-	PTADC_ResetPT();
-	uartPrint((uint8_t*)"Conversion Ready \n");
-	uint32_t temp = PTADC_GetRawTempFromChannel(PT_CHANNEL_5);
-	uint8_t printout[BUFSIZ] = {0};
+uint16_t PTADC_ReadConfReg() {
+	uint8_t rxResult[2];
 
-	float volts = temp * 2.5 / (powf(2, 24));
-	snprintf(printout, BUFSIZ, "Volts: %0.2f\n", volts);
-	uartPrint(printout);
-	for (int i = 0; i < 4; i++)
-		uartPrintBinary8(((uint8_t*)&temp)[i], 0);
-	uartPrint((uint8_t*)"\r\n");
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_RESET);
+
+	HAL_SPI_Transmit(&hspi1, &READ_CONF_REG, 1, TIMEOUT);
+	HAL_SPI_Receive(&hspi1, rxResult, 2, TIMEOUT);
+
+	HAL_GPIO_WritePin(PT_CS_GPIO_Port, PT_CS_Pin, GPIO_PIN_SET);
+
+	uint16_t rxResultBuf = rxResult[0] | (rxResult[1] << 8);
+
+	return rxResultBuf;
 }
